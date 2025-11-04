@@ -1,12 +1,48 @@
-'use client';
+"use client";
 
 import { useEffect, useState } from 'react';
-import { supabase, type Campaign } from '@/lib/supabase';
+import type { Campaign } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingCart, Users, TrendingDown, Plus } from 'lucide-react';
+// Lightweight inline icons to avoid pulling lucide-react into server bundles during build
+function ShoppingCartIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} {...props}>
+      <path d="M3 3h2l.4 2M7 13h10l4-8H5.4" />
+      <circle cx="9" cy="20" r="1" />
+      <circle cx="20" cy="20" r="1" />
+    </svg>
+  );
+}
+
+function UsersIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} {...props}>
+      <path d="M17 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M7 21v-2a4 4 0 0 1 3-3.87" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function TrendingDownIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} {...props}>
+      <polyline points="22 17 13.5 8.5 8.5 13.5 2 7" />
+      <polyline points="16 17 22 17 22 11" />
+    </svg>
+  );
+}
+
+function PlusIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} {...props}>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
 import Link from 'next/link';
 
 export default function Home() {
@@ -19,13 +55,15 @@ export default function Home() {
 
   async function fetchCampaigns() {
     try {
-      const { data, error } = await supabase
-        .from('campaigns')
-        .select('*')
-        .eq('status', 'active')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/campaigns?select=*&status=eq.active&order=created_at.desc`;
+      const res = await fetch(url, {
+        headers: {
+          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+        },
+      });
+      if (!res.ok) throw new Error(`Failed to fetch campaigns: ${res.status}`);
+      const data = await res.json();
       setCampaigns(data || []);
     } catch (error) {
       console.error('Error fetching campaigns:', error);
@@ -55,12 +93,12 @@ export default function Home() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <ShoppingCart className="h-8 w-8 text-slate-900" />
+              <ShoppingCartIcon className="h-8 w-8 text-slate-900" />
               <h1 className="text-2xl font-bold text-slate-900">GroupBuy</h1>
             </div>
             <Link href="/seller">
               <Button className="gap-2">
-                <Plus className="h-4 w-4" />
+                <PlusIcon className="h-4 w-4" />
                 Sell Product
               </Button>
             </Link>
@@ -92,7 +130,7 @@ export default function Home() {
           </div>
         ) : campaigns.length === 0 ? (
           <div className="text-center py-12">
-            <ShoppingCart className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+            <ShoppingCartIcon className="h-16 w-16 text-slate-300 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-slate-900 mb-2">No Active Campaigns</h3>
             <p className="text-slate-600">Check back soon for new group buy opportunities!</p>
           </div>
@@ -144,7 +182,7 @@ export default function Home() {
                             <span className="text-sm text-slate-500 line-through">
                               ${campaign.starting_price.toFixed(2)}
                             </span>
-                            <TrendingDown className="h-4 w-4 text-red-500" />
+                            <TrendingDownIcon className="h-4 w-4 text-red-500" />
                           </>
                         )}
                       </div>
@@ -153,7 +191,7 @@ export default function Home() {
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-slate-600 flex items-center gap-1">
-                              <Users className="h-4 w-4" />
+                              <UsersIcon className="h-4 w-4" />
                               {campaign.current_quantity} / {campaign.target_quantity} buyers
                             </span>
                             <span className="font-semibold text-slate-900">

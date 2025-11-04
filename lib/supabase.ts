@@ -1,32 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
+// This file previously provided a Supabase client helper. To avoid pulling
+// `@supabase/supabase-js` (and its realtime/browser-only deps) into server
+// bundles during the Next.js build, the app now uses direct REST (PostgREST)
+// fetch calls from client components. Types are moved to `lib/types.ts`.
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+// Keep this file as a placeholder to avoid accidental imports. Do not import
+// from here in client code; import types from `lib/types` instead.
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-export type Campaign = {
-  id: string;
-  seller_id: string;
-  title: string;
-  description: string;
-  image_url: string;
-  starting_price: number;
-  final_price: number;
-  target_quantity: number;
-  current_quantity: number;
-  status: 'active' | 'paused' | 'completed';
-  created_at: string;
-  updated_at: string;
-};
-
-export type Order = {
-  id: string;
-  campaign_id: string;
-  buyer_email: string;
-  buyer_name: string;
-  quantity: number;
-  price_paid: number;
-  status: 'pending' | 'confirmed' | 'cancelled';
-  created_at: string;
-};
+export const __deprecated = true;

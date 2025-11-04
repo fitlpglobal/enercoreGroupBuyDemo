@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase, type Campaign } from '@/lib/supabase';
+import type { Campaign } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,61 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ShoppingCart, Users, TrendingDown, ArrowLeft, CheckCircle2, Package } from 'lucide-react';
+// Inline icons to avoid pulling lucide-react into server bundles during build
+function ShoppingCartIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} {...props}>
+      <path d="M3 3h2l.4 2M7 13h10l4-8H5.4" />
+      <circle cx="9" cy="20" r="1" />
+      <circle cx="20" cy="20" r="1" />
+    </svg>
+  );
+}
+
+function UsersIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} {...props}>
+      <path d="M17 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M7 21v-2a4 4 0 0 1 3-3.87" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function TrendingDownIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} {...props}>
+      <polyline points="22 17 13.5 8.5 8.5 13.5 2 7" />
+      <polyline points="16 17 22 17 22 11" />
+    </svg>
+  );
+}
+
+function ArrowLeftIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} {...props}>
+      <path d="M19 12H5" />
+      <path d="M12 19l-7-7 7-7" />
+    </svg>
+  );
+}
+
+function CheckCircleIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} {...props}>
+      <path d="M9 12l2 2 4-4" />
+      <circle cx="12" cy="12" r="9" />
+    </svg>
+  );
+}
+
+function PackageIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} {...props}>
+      <path d="M21 16V8a2 2 0 0 0-1-1.73L12 2 4 6.27A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73L12 22l8-4.27A2 2 0 0 0 21 16z" />
+    </svg>
+  );
+}
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 
@@ -35,18 +89,23 @@ export default function ProductPage() {
 
   async function fetchCampaign(id: string) {
     try {
-      const { data, error } = await supabase
-        .from('campaigns')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
-
-      if (error) throw error;
-      if (!data) {
+      const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/campaigns?select=*&id=eq.${encodeURIComponent(
+        id
+      )}`;
+      const res = await fetch(url, {
+        headers: {
+          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+        },
+      });
+      if (!res.ok) throw new Error(`Failed to fetch campaign: ${res.status}`);
+      const data = await res.json();
+      const item = Array.isArray(data) && data.length > 0 ? data[0] : null;
+      if (!item) {
         router.push('/');
         return;
       }
-      setCampaign(data);
+      setCampaign(item);
     } catch (error) {
       console.error('Error fetching campaign:', error);
       router.push('/');
@@ -64,19 +123,25 @@ export default function ProductPage() {
       const currentPrice = campaign.current_quantity >= campaign.target_quantity
         ? campaign.final_price
         : campaign.starting_price;
-
-      const { error } = await supabase
-        .from('orders')
-        .insert({
+      const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/orders`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation',
+        },
+        body: JSON.stringify({
           campaign_id: campaign.id,
           buyer_name: formData.name,
           buyer_email: formData.email,
           quantity: formData.quantity,
           price_paid: currentPrice,
           status: 'confirmed',
-        });
-
-      if (error) throw error;
+        }),
+      });
+      if (!res.ok) throw new Error(`Failed to create order: ${res.status}`);
 
       toast({
         title: 'Order placed successfully!',
@@ -128,12 +193,12 @@ export default function ProductPage() {
           <div className="flex items-center gap-4">
             <Link href="/">
               <Button variant="ghost" size="sm" className="gap-2">
-                <ArrowLeft className="h-4 w-4" />
+                    <ArrowLeftIcon className="h-4 w-4" />
                 Back
               </Button>
             </Link>
             <div className="flex items-center gap-2">
-              <ShoppingCart className="h-6 w-6 text-slate-900" />
+                  <ShoppingCartIcon className="h-6 w-6 text-slate-900" />
               <h1 className="text-xl font-bold text-slate-900">GroupBuy</h1>
             </div>
           </div>
@@ -181,7 +246,7 @@ export default function ProductPage() {
                 </div>
                 <div className="pt-4 border-t">
                   <div className="flex items-center gap-2 text-slate-600">
-                    <Package className="h-5 w-5" />
+                      <PackageIcon className="h-5 w-5" />
                     <span>Free shipping on all orders</span>
                   </div>
                 </div>
@@ -208,7 +273,7 @@ export default function ProductPage() {
                         <span className="text-xl text-slate-500 line-through">
                           ${campaign.starting_price.toFixed(2)}
                         </span>
-                        <TrendingDown className="h-5 w-5 text-red-500" />
+                          <TrendingDownIcon className="h-5 w-5 text-red-500" />
                       </>
                     )}
                   </div>
@@ -221,7 +286,7 @@ export default function ProductPage() {
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <span className="font-semibold text-slate-900 flex items-center gap-2">
-                            <Users className="h-5 w-5" />
+                     <UsersIcon className="h-5 w-5" />
                             {campaign.current_quantity} / {campaign.target_quantity} buyers
                           </span>
                           <span className="font-bold text-slate-900">{Math.round(progress)}%</span>
@@ -237,7 +302,7 @@ export default function ProductPage() {
 
                 {isTargetReached && (
                   <Alert className="bg-green-50 border-green-200">
-                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <CheckCircleIcon className="h-5 w-5 text-green-600" />
                     <AlertDescription className="text-green-700 font-semibold">
                       Congratulations! The target has been reached. You're getting the best price at ${campaign.final_price.toFixed(2)}!
                     </AlertDescription>

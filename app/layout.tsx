@@ -1,7 +1,11 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { Toaster } from '@/components/ui/toaster';
+import dynamic from 'next/dynamic';
+
+// Dynamically load the client-only Toaster without SSR so server build won't
+// try to bundle client-only deps into server chunks.
+const Toaster = dynamic(() => import('@/components/ui/toaster'), { ssr: false });
 
 const inter = Inter({ subsets: ['latin'] });
 

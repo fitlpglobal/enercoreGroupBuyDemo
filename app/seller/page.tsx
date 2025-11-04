@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
 import { useEffect, useState } from 'react';
-import { supabase, type Campaign } from '@/lib/supabase';
+import type { Campaign } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,78 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ShoppingCart, Plus, Pause, Play, Trash2, Users, DollarSign, ArrowLeft } from 'lucide-react';
+function ShoppingCartIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} {...props}>
+      <path d="M3 3h2l.4 2M7 13h10l4-8H5.4" />
+      <circle cx="9" cy="20" r="1" />
+      <circle cx="20" cy="20" r="1" />
+    </svg>
+  );
+}
+
+function PlusIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} {...props}>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+function PauseIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} {...props}>
+      <rect x="6" y="5" width="4" height="14" />
+      <rect x="14" y="5" width="4" height="14" />
+    </svg>
+  );
+}
+
+function PlayIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} {...props}>
+      <path d="M5 3v18l15-9L5 3z" />
+    </svg>
+  );
+}
+
+function TrashIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} {...props}>
+      <path d="M3 6h18" />
+      <path d="M8 6v14a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" />
+      <path d="M10 11v6M14 11v6" />
+    </svg>
+  );
+}
+
+function UsersIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} {...props}>
+      <path d="M17 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M7 21v-2a4 4 0 0 1 3-3.87" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function DollarIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} {...props}>
+      <path d="M12 1v22" />
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6" />
+    </svg>
+  );
+}
+
+function ArrowLeftIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} {...props}>
+      <path d="M19 12H5" />
+      <path d="M12 19l-7-7 7-7" />
+    </svg>
+  );
+}
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 
@@ -35,12 +106,15 @@ export default function SellerPage() {
 
   async function fetchCampaigns() {
     try {
-      const { data, error } = await supabase
-        .from('campaigns')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/campaigns?select=*&order=created_at.desc`;
+      const res = await fetch(url, {
+        headers: {
+          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+        },
+      });
+      if (!res.ok) throw new Error(`Failed to fetch campaigns: ${res.status}`);
+      const data = await res.json();
       setCampaigns(data || []);
     } catch (error) {
       console.error('Error fetching campaigns:', error);
@@ -52,9 +126,16 @@ export default function SellerPage() {
   async function handleCreateCampaign(e: React.FormEvent) {
     e.preventDefault();
     try {
-      const { error } = await supabase
-        .from('campaigns')
-        .insert({
+      const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/campaigns`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation',
+        },
+        body: JSON.stringify({
           seller_id: formData.seller_id,
           title: formData.title,
           description: formData.description,
@@ -63,9 +144,9 @@ export default function SellerPage() {
           final_price: parseFloat(formData.final_price),
           target_quantity: parseInt(formData.target_quantity),
           status: 'active',
-        });
-
-      if (error) throw error;
+        }),
+      });
+      if (!res.ok) throw new Error(`Failed to create campaign: ${res.status}`);
 
       toast({
         title: 'Campaign created!',
@@ -96,12 +177,20 @@ export default function SellerPage() {
   async function toggleCampaignStatus(campaignId: string, currentStatus: string) {
     const newStatus = currentStatus === 'active' ? 'paused' : 'active';
     try {
-      const { error } = await supabase
-        .from('campaigns')
-        .update({ status: newStatus })
-        .eq('id', campaignId);
-
-      if (error) throw error;
+      const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/campaigns?id=eq.${encodeURIComponent(
+        campaignId
+      )}`;
+      const res = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) throw new Error(`Failed to update campaign: ${res.status}`);
 
       toast({
         title: `Campaign ${newStatus === 'active' ? 'resumed' : 'paused'}`,
@@ -123,12 +212,17 @@ export default function SellerPage() {
     if (!confirm('Are you sure you want to delete this campaign?')) return;
 
     try {
-      const { error } = await supabase
-        .from('campaigns')
-        .delete()
-        .eq('id', campaignId);
-
-      if (error) throw error;
+      const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/campaigns?id=eq.${encodeURIComponent(
+        campaignId
+      )}`;
+      const res = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+        },
+      });
+      if (!res.ok) throw new Error(`Failed to delete campaign: ${res.status}`);
 
       toast({
         title: 'Campaign deleted',
@@ -154,19 +248,19 @@ export default function SellerPage() {
             <div className="flex items-center gap-4">
               <Link href="/">
                 <Button variant="ghost" size="sm" className="gap-2">
-                  <ArrowLeft className="h-4 w-4" />
+                  <ArrowLeftIcon className="h-4 w-4" />
                   Back to Home
                 </Button>
               </Link>
               <div className="flex items-center gap-2">
-                <ShoppingCart className="h-6 w-6 text-slate-900" />
+                <ShoppingCartIcon className="h-6 w-6 text-slate-900" />
                 <h1 className="text-xl font-bold text-slate-900">Seller Dashboard</h1>
               </div>
             </div>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="gap-2">
-                  <Plus className="h-4 w-4" />
+                  <PlusIcon className="h-4 w-4" />
                   Create Campaign
                 </Button>
               </DialogTrigger>
@@ -320,11 +414,11 @@ export default function SellerPage() {
         ) : campaigns.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
-              <ShoppingCart className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+              <ShoppingCartIcon className="h-16 w-16 text-slate-300 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-slate-900 mb-2">No Campaigns Yet</h3>
               <p className="text-slate-600 mb-4">Create your first group buy campaign to get started</p>
               <Button onClick={() => setDialogOpen(true)} className="gap-2">
-                <Plus className="h-4 w-4" />
+                <PlusIcon className="h-4 w-4" />
                 Create Campaign
               </Button>
             </CardContent>
@@ -359,22 +453,22 @@ export default function SellerPage() {
                   <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                       <div className="text-center p-4 bg-slate-50 rounded-lg">
-                        <DollarSign className="h-5 w-5 text-slate-600 mx-auto mb-1" />
+                        <DollarIcon className="h-5 w-5 text-slate-600 mx-auto mb-1" />
                         <p className="text-2xl font-bold text-slate-900">${campaign.starting_price}</p>
                         <p className="text-xs text-slate-600">Starting Price</p>
                       </div>
                       <div className="text-center p-4 bg-green-50 rounded-lg">
-                        <DollarSign className="h-5 w-5 text-green-600 mx-auto mb-1" />
+                        <DollarIcon className="h-5 w-5 text-green-600 mx-auto mb-1" />
                         <p className="text-2xl font-bold text-green-600">${campaign.final_price}</p>
                         <p className="text-xs text-slate-600">Final Price ({discount}% off)</p>
                       </div>
                       <div className="text-center p-4 bg-blue-50 rounded-lg">
-                        <Users className="h-5 w-5 text-blue-600 mx-auto mb-1" />
+                        <UsersIcon className="h-5 w-5 text-blue-600 mx-auto mb-1" />
                         <p className="text-2xl font-bold text-blue-600">{campaign.current_quantity}/{campaign.target_quantity}</p>
                         <p className="text-xs text-slate-600">Buyers</p>
                       </div>
                       <div className="text-center p-4 bg-slate-50 rounded-lg">
-                        <DollarSign className="h-5 w-5 text-slate-600 mx-auto mb-1" />
+                        <DollarIcon className="h-5 w-5 text-slate-600 mx-auto mb-1" />
                         <p className="text-2xl font-bold text-slate-900">${revenue.toFixed(2)}</p>
                         <p className="text-xs text-slate-600">Total Revenue</p>
                       </div>
@@ -402,12 +496,12 @@ export default function SellerPage() {
                       >
                         {campaign.status === 'active' ? (
                           <>
-                            <Pause className="h-4 w-4" />
+                            <PauseIcon className="h-4 w-4" />
                             Pause
                           </>
                         ) : (
                           <>
-                            <Play className="h-4 w-4" />
+                            <PlayIcon className="h-4 w-4" />
                             Resume
                           </>
                         )}
@@ -418,7 +512,7 @@ export default function SellerPage() {
                         onClick={() => deleteCampaign(campaign.id)}
                         className="gap-2 text-red-600 hover:text-red-700"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <TrashIcon className="h-4 w-4" />
                         Delete
                       </Button>
                       <Link href={`/product/${campaign.id}`} className="ml-auto">
