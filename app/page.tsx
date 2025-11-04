@@ -44,6 +44,7 @@ function PlusIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 import Link from 'next/link';
+import { calculateLinearPrice } from '@/lib/utils';
 
 export default function Home() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -77,10 +78,12 @@ export default function Home() {
   };
 
   const calculateCurrentPrice = (campaign: Campaign) => {
-    if (campaign.current_quantity >= campaign.target_quantity) {
-      return campaign.final_price;
-    }
-    return campaign.starting_price;
+    return calculateLinearPrice(
+      campaign.starting_price,
+      campaign.final_price,
+      campaign.target_quantity,
+      campaign.current_quantity
+    );
   };
 
   const calculateDiscount = (starting: number, final: number) => {

@@ -66,6 +66,7 @@ function PackageIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 import Link from 'next/link';
+import { calculateLinearPrice } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 export default function ProductPage() {
@@ -179,9 +180,12 @@ export default function ProductPage() {
   }
 
   const progress = (campaign.current_quantity / campaign.target_quantity) * 100;
-  const currentPrice = campaign.current_quantity >= campaign.target_quantity
-    ? campaign.final_price
-    : campaign.starting_price;
+  const currentPrice = calculateLinearPrice(
+    campaign.starting_price,
+    campaign.final_price,
+    campaign.target_quantity,
+    campaign.current_quantity
+  );
   const discount = Math.round(((campaign.starting_price - campaign.final_price) / campaign.starting_price) * 100);
   const isTargetReached = campaign.current_quantity >= campaign.target_quantity;
   const isPaused = campaign.status === 'paused';
